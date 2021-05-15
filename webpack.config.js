@@ -1,15 +1,17 @@
 /* eslint-disable */
+const path = require('path');
+const webpack = require('webpack');
+
 const BrowserSyncPlugin = require('browser-sync-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
+const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const ExtraWatchWebpackPlugin = require('extra-watch-webpack-plugin');
+const HTMLWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const NunjucksWebpackPlugin = require('nunjucks-webpack-plugin');
-const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
 const StyleLintPlugin = require('stylelint-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
-const path = require('path');
-const nunjuckspages = require('./nunjuckspages');
+const templates = require('./nunjuckspages');
 
 module.exports = env => {
   const devMode = !env || !env.production;
@@ -17,10 +19,10 @@ module.exports = env => {
   return {
     mode: devMode ? 'development' : 'production',
     entry: {
-      polyfills: "@babel/polyfill",
       main: './src/index.js',
       baseComponents: './src/components.js',
-      vendor: './src/vendor.js'
+      vendor: './src/vendor.js',
+      polyfills: './src/polyfills.js'
     },
     output: {
       path: path.join(__dirname, 'dist'),
@@ -47,11 +49,7 @@ module.exports = env => {
         {
           test: /\.js$/,
           loader: 'babel-loader',
-          options: {
-            presets: [
-              '@babel/preset-env'
-            ]
-          }
+          exclude: /(node_modules|bower_components)/
         },
         {
           test: /\.(png|jpg|gif)$/i,
@@ -73,6 +71,17 @@ module.exports = env => {
               outputPath: 'fonts/'
             }
           }]
+        },
+        {
+          test: /\.njk$/,
+          use: [
+            {
+              loader: 'simple-nunjucks-loader',
+              options: {
+                searchPaths: [ path.resolve('./templates') ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -81,20 +90,22 @@ module.exports = env => {
     },
     devtool: 'source-map',
     plugins: [
-      new NunjucksWebpackPlugin({
-        templates: nunjuckspages
-      }),
+      new webpack.ProgressPlugin(),
+      ...(devMode ? [] : [new CleanWebpackPlugin()]),
+      ...templates.map(template => new HTMLWebpackPlugin(template)),
       new MiniCssExtractPlugin({
         filename: 'assets/css/[name].css'
       }),
-      new StyleLintPlugin(),
+      new StyleLintPlugin({
+        files: 'scss/**/*.(s(c|a)ss|css)'
+      }),
       new BrowserSyncPlugin({
         host: 'localhost',
         port: 3000,
         server: { baseDir: ['dist'] }
       }),
       new ExtraWatchWebpackPlugin({
-        dirs: ['templates']
+        dirs: [path.resolve('templates')]
       }),
       new CopyWebpackPlugin({
         patterns: [
@@ -106,16 +117,10 @@ module.exports = env => {
       minimize: !devMode,
       minimizer: [
         new TerserPlugin({
-          sourceMap: true,
-          parallel: true
+          parallel: true,
+          extractComments: true
         }),
-        new OptimizeCSSAssetsPlugin({
-          cssProcessorOptions: {
-            map: {
-              inline: false
-            }
-          }
-        })
+        new CssMinimizerPlugin()
       ]
     }
   };

@@ -1,5 +1,9 @@
-import { LitElement, html } from 'lit-element';
+import { html, LitElement } from 'lit';
+import { customElement } from 'lit/decorators.js';
 
+import { getCommonComponentsStylesheet } from '../../utils';
+
+@customElement('my-element')
 export class DemoElement extends LitElement {
     // Implement `render` to define a template for your element.
     render() {
@@ -10,10 +14,10 @@ export class DemoElement extends LitElement {
          * with the `html` helper function.
          */
         return html`
+      ${getCommonComponentsStylesheet()}
       <div>
-        <p>A paragraph</p>
+        <p class="btn-blue">A paragraph</p>
       </div>
     `;
     }
 }
-window.customElements.define('my-element', DemoElement);

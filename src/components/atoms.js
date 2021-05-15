@@ -1,1 +1,1 @@
-export * from './atoms/demo-element';
+export { DemoElement } from './atoms/demo-element';
